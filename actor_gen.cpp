@@ -238,7 +238,8 @@ static std::string generate_instruction(
 static std::string generate_cond_block(
 	std::vector<std::string>& vars,
 	std::vector<std::string>& ro_vars,
-	unsigned instructions)
+	unsigned instructions,
+	std::string prefix)
 {
 	std::string cond;
 	std::string b1;
@@ -281,11 +282,11 @@ static std::string generate_cond_block(
 		if ((i > 5) && rand_bool_dist(10)) {
 			unsigned bound = i / 3;
 			unsigned inst = rand_in_range(2, bound);
-			b1.append(generate_cond_block(vars, ro_vars, inst));
+			b1.append(generate_cond_block(vars, ro_vars, inst, prefix + "\t"));
 			i -= inst;
 		}
 		else {
-			b1.append(generate_instruction(vars, ro_vars));
+			b1.append(prefix + "\t" + generate_instruction(vars, ro_vars));
 			--i;
 		}
 	}
@@ -294,23 +295,23 @@ static std::string generate_cond_block(
 		if ((i > 5) && rand_bool_dist(10)) {
 			unsigned bound = i / 3;
 			unsigned inst = rand_in_range(2, bound);
-			b2.append(generate_cond_block(vars, ro_vars, inst));
+			b2.append(generate_cond_block(vars, ro_vars, inst, prefix + "\t"));
 			i -= inst;
 		}
 		else {
-			b2.append(generate_instruction(vars, ro_vars));
+			b2.append(prefix + "\t" + generate_instruction(vars, ro_vars));
 			--i;
 		}
 	}
 
 	std::string n;
-	n = "\t\tif (" + cond + ") then\n";
+	n = prefix + "if (" + cond + ") then\n";
 	n.append(b1);
 	if (!b2.empty()) {
-		n.append("\t\telse\n");
+		n.append(prefix + "else\n");
 		n.append(b2);
 	}
-	n.append("\t\tend\n");
+	n.append(prefix + "end\n");
 
 	return n;
 }
@@ -318,7 +319,8 @@ static std::string generate_cond_block(
 static std::string generate_loop(
 	std::vector<std::string>& vars,
 	std::vector<std::string> ro_vars,
-	unsigned instructions)
+	unsigned instructions,
+	std::string prefix)
 {
 	Config* c = c->getInstance();
 	assert(instructions > 0);
@@ -336,19 +338,19 @@ static std::string generate_loop(
 	for (unsigned i = instructions; i > 0;) {
 		if (rand_bool() && (i > 1)) {
 			unsigned inst = rand_in_range(2, i);
-			block.append(generate_cond_block(vars, ro_vars, inst));
+			block.append(generate_cond_block(vars, ro_vars, inst, prefix + "\t"));
 			i -= inst;
 		}
 		else {
-			block.append("\t\t\t" + generate_instruction(vars, ro_vars));
+			block.append(prefix + "\t" + generate_instruction(vars, ro_vars));
 			--i;
 		}
 	}
 
 	std::string n;
-	n = "\t\tforeach " + cond + " do\n";
+	n = prefix + "foreach " + cond + " do\n";
 	n.append(block);
-	n.append("\t\tend\n");
+	n.append(prefix + "end\n");
 
 	return n;
 }
@@ -427,7 +429,7 @@ static std::string generate_action(
 	unsigned e = (num_instructions / 7) + 1;
 	for (unsigned i = 0; i < e; ++i) {
 
-		n.append("\t\tl_" + std::to_string(i));
+		n.append("\t\tint l_" + std::to_string(i));
 		vars.push_back("l_" + std::to_string(i));
 		n.append(" := " + std::to_string(rand_in_range(1, 17)));
 
@@ -443,13 +445,13 @@ static std::string generate_action(
 		if (complexity == Actor_Complexity::Cond && rand_bool_dist(i) && !vars.empty() && (i > 3)) {
 			unsigned num_inst = (i > 15) ? 15 : i;
 			num_inst = rand_in_range(3, num_inst);
-			n.append(generate_cond_block(vars, ro_vars, num_inst));
+			n.append(generate_cond_block(vars, ro_vars, num_inst, "\t\t"));
 			i -= num_inst;
 		}
 		else if (complexity == Actor_Complexity::Loop && rand_bool_dist(i) && !vars.empty() && (i > 3)) {
 			unsigned num_inst = (i > 15) ? 15 : i;
 			num_inst = rand_in_range(3, num_inst);
-			n.append(generate_loop(vars, ro_vars, num_inst));
+			n.append(generate_loop(vars, ro_vars, num_inst, "\t\t"));
 			i -= num_inst;
 		}
 		else {
@@ -472,7 +474,7 @@ static std::string generate_action(
 	}
 
 	n.append(code);
-	n.append("\tend");
+	n.append("\tend\n\n");
 
 	return n;
 }
@@ -993,7 +995,7 @@ void generate_actor(
 		}
 		n.append(" int " + it->name);
 	}
-	n.append(" ==> ");
+	n.append(" ==>");
 	for (auto it = actor->outports.begin(); it != actor->outports.end(); ++it) {
 		if (it != actor->outports.begin()) {
 			n.append(",");
@@ -1004,7 +1006,7 @@ void generate_actor(
 
 	std::vector<std::string> global_vars;
 	std::vector<std::pair<Action_Name, Action_Name>> prios;
-	State start_state;
+	State start_state = "state0";
 	std::vector<std::tuple<State, Action_Name, Next_State>> fsm;
 
 	if (actor->state_vars) {
@@ -1026,7 +1028,7 @@ void generate_actor(
 			                  actor->priorities, prios, actor->num_instructions, actor->complexity, actor->complex_guards, global_vars));
 
 	if (actor->FSM) {
-		n.append("\tschedule fsm " + start_state + "\n");
+		n.append("\tschedule fsm " + start_state + ":\n");
 		for (auto it = fsm.begin(); it != fsm.end(); ++it) {
 			n.append("\t\t" + std::get<0>(*it) + "(" + std::get<1>(*it) + ") --> " + std::get<2>(*it) + ";\n");
 		}

@@ -154,10 +154,10 @@ static Actor_Complexity get_complexity(
 	if (max == Actor_Complexity::Simple) {
 		return Actor_Complexity::Simple;
 	}
-	else if (max == Actor_Complexity::Loop) {
+	else if (max == Actor_Complexity::Cond) {
 		top = 1;
 	}
-	else if (max == Actor_Complexity::Cond) {
+	else if (max == Actor_Complexity::Loop) {
 		top = 2;
 	}
 	else {
@@ -167,14 +167,14 @@ static Actor_Complexity get_complexity(
 	unsigned rand = rand_in_range(0, top);
 
 	if (rand == 0) {
-		return Actor_Complexity::Loop;
+		return Actor_Complexity::Simple;
 	}
 	else if (rand == 1) {
 		return Actor_Complexity::Cond;
 	}
 	else {
 		assert(rand == 2);
-		return Actor_Complexity::Simple;
+		return Actor_Complexity::Loop;
 	}
 }
 
@@ -590,7 +590,7 @@ int generate_network(void)
 	}
 
 	while (remaining_actors > 0) {
-		unsigned pn = check_parallel_network(remaining_actors, open_ports, net, actor_count, c->get_num_outputs(), feedbacks.size());
+		unsigned pn = check_parallel_network(remaining_actors, open_ports, net, actor_count, c->get_num_outputs(), static_cast<unsigned>(feedbacks.size()));
 		if (pn != 0) {
 			remaining_actors -= pn;
 			actor_count += pn;
