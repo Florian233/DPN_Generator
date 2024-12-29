@@ -444,7 +444,7 @@ static void define_new_actor(
 
 		aip.port = p;
 
-		if (!feedback_send && !feedbacks.empty() && rand_bool_dist(remaining_actors - static_cast<unsigned>(feedbacks.size()))) {
+		if (!feedback_send && !feedbacks.empty() && rand_bool_dist_limit(remaining_actors - static_cast<unsigned>(feedbacks.size()), 25)) {
 			std::cout << " - Connecting feedback loop: " << feedbacks.size() << std::endl;
 			auto x = feedbacks.begin() + rand_in_range(0, static_cast<unsigned>(feedbacks.size()) - 1);
 			p.num_tokens = 1;

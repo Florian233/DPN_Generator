@@ -20,6 +20,11 @@ static bool rand_bool_dist(unsigned range) {
 	return (rand_in_range(0, range) == 0) ? true : false;
 }
 
+static bool rand_bool_dist_limit(unsigned range, unsigned limit) {
+	range = range > limit ? limit : range;
+	return (rand_in_range(0, range) == 0) ? true : false;
+}
+
 static void rand_set_time_seed(void) {
 	srand(static_cast<unsigned int>(time(NULL)));
 }
