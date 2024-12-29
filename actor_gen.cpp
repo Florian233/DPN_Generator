@@ -861,7 +861,7 @@ static std::string generate_actions(
 				++action_count;
 				unsigned inst;
 				if (out.size() > max_instructions) {
-					inst = static_cast<unsigned>(out.size());
+					inst = max_instructions;
 				}
 				else {
 					inst = rand_in_range(static_cast<unsigned>(out.size()), max_instructions);
@@ -932,7 +932,7 @@ static std::string generate_actions(
 			++action_count;
 			unsigned inst;
 			if (out.size() > max_instructions) {
-				inst = static_cast<unsigned>(out.size());
+				inst = max_instructions;
 			}
 			else {
 				inst = rand_in_range(static_cast<unsigned>(out.size()), max_instructions);

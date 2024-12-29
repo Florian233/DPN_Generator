@@ -397,7 +397,7 @@ static void define_new_actor(
 		Port p;
 		p.name = "X" + std::to_string(i);
 
-		if (allow_feedback && !feedback_set && rand_bool_dist(c->get_num_nodes() - remaining_actors) && (in > 1)) {
+		if (allow_feedback && !feedback_set && (feedbacks.size() < 4) && (remaining_actors > feedbacks.size()) && rand_bool_dist(c->get_num_nodes() - remaining_actors) && (in > 1)) {
 
 			std::cout << " + Adding feedback loop inport: " << feedbacks.size() << std::endl;
 
@@ -435,6 +435,7 @@ static void define_new_actor(
 		}
 	}
 
+	bool feedback_send = false;
 	for (unsigned i = 0; i < out; ++i) {
 		Actor_Instance_Port aip;
 		aip.inst = inst;
@@ -443,9 +444,9 @@ static void define_new_actor(
 
 		aip.port = p;
 
-		if (!feedbacks.empty() && rand_bool_dist(remaining_actors / 4)) {
+		if (!feedback_send && !feedbacks.empty() && rand_bool_dist(remaining_actors - feedbacks.size())) {
 			std::cout << " - Connecting feedback loop: " << feedbacks.size() << std::endl;
-			auto x = feedbacks.begin();
+			auto x = feedbacks.begin(); // TODO: make random
 			p.num_tokens = 1;
 			p.feedback = true;
 			Connection con;
@@ -455,6 +456,8 @@ static void define_new_actor(
 			con.source_port = p.name;
 			net->add_connection(con);
 			feedbacks.erase(x);
+
+			feedback_send = true;
 		}
 		else {
 			p.num_tokens = rand_in_range(1, c->get_max_tokenrate());
@@ -601,6 +604,11 @@ int generate_network(void)
 
 		++actor_count;
 		--remaining_actors;
+	}
+
+	if (!feedbacks.empty()) {
+		std::cout << "Not all feedback loops connected. Generation failed." << std::endl;
+		return 1;
 	}
 
 	if (open_ports.size() > c->get_num_outputs()) {
