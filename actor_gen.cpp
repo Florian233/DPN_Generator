@@ -266,10 +266,10 @@ static std::string generate_cond_block(
 
 	if (rand_bool()) {
 		if ((rand_bool() && !vars.empty()) || ro_vars.empty()) {
-			cond = vars.at(rand_in_range(0, static_cast<unsigned>(vars.size()) - 1));
+			cond.append(vars.at(rand_in_range(0, static_cast<unsigned>(vars.size()) - 1)));
 		}
 		else {
-			cond = ro_vars.at(rand_in_range(0, static_cast<unsigned>(ro_vars.size()) - 1));
+			cond.append(ro_vars.at(rand_in_range(0, static_cast<unsigned>(ro_vars.size()) - 1)));
 		}
 	}
 	else {
@@ -439,7 +439,7 @@ static std::string generate_action(
 		n.append("\n");
 	}
 
-	n.append("\tbegin\n");
+	n.append("\tdo\n");
 
 	for (unsigned i = num_instructions; i > 0;) {
 		if (complexity == Actor_Complexity::Cond && rand_bool_dist(i) && !vars.empty() && (i > 3)) {
@@ -563,10 +563,18 @@ static std::vector<action_config> generate_static_action_configs(
 
 	std::vector<std::pair<std::string, int>> guard_factors_list;
 
-	if (guard_factors > 1) {
+	if (guard_factors > 0) {
 
-		for (unsigned i = 1; i < guard_factors; ++i) {
-			if (rand_bool() && complex_guard && !in.empty() && (input_used.size() < in.size())) {
+		for (unsigned i = 0; i < guard_factors; ++i) {
+			if ((rand_bool() || !complex_guard) && !globals.empty() && (global_var_update.size() < globals.size())) {
+				std::string f = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
+				while (global_var_update.contains(f)) {
+					f = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
+				}
+				guard_factors_list.push_back(std::make_pair(f, rand_in_range(1, 5)));
+				global_var_update[f] = false;
+			}
+			else if (complex_guard && !in.empty() && (input_used.size() < in.size())) {
 				std::string f = in.at(rand_in_range(0, static_cast<unsigned>(in.size()) - 1)).name;
 				while (input_used.contains(f)) {
 					f = in.at(rand_in_range(0, static_cast<unsigned>(in.size()) - 1)).name;
@@ -576,16 +584,10 @@ static std::vector<action_config> generate_static_action_configs(
 				guard_factors_list.push_back(std::make_pair(f, rand_in_range(1, 5)));
 				input_used[f] = false;
 			}
-			else if (!globals.empty() && (global_var_update.size() < globals.size())) {
-				std::string f = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
-				while (global_var_update.contains(f)) {
-					f = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
-				}
-				guard_factors_list.push_back(std::make_pair(f, rand_in_range(1, 5)));
-				global_var_update[f] = false;
+			else {
+				assert((!complex_guard && (globals.size() < guard_factors)) || (complex_guard && ((globals.size() + in.size()) < guard_factors)));
 			}
 		}
-
 	}
 
 	for (unsigned i = 0; i < num_actions; ++i) {

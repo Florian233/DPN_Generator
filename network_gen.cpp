@@ -190,6 +190,8 @@ static void generate_parallel_network(
 	std::vector<Actor_Instance_Port> left;
 	std::vector<Actor_Instance_Port> right;
 
+	num_actors -= 2; // for join and fork
+
 	unsigned remaining_left = num_actors / 2;
 	unsigned remaining_right = num_actors - remaining_left;
 
