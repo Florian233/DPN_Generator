@@ -381,14 +381,18 @@ static unsigned check_parallel_network(
 			remaining_actors -= actors;
 			std::vector<Actor_Instance_Port> inp;
 			for (unsigned i = 0; i < in; ++i) {
+
 				unsigned range = (unsigned)open_ports.size() / 3;
 				auto src = open_ports.begin() + rand_in_range(0, range);
+				Actor_Instance_Port aip = *src;
 				inp.push_back(*src);
 				open_ports.erase(src);
-				if (src->port.num_tokens != 1) {
-					set_default_tokenrate(net, src->inst->actor->class_path, src->port.name);
+
+				if (aip.port.num_tokens != 1) {
+					set_default_tokenrate(net, aip.inst->actor->class_path, aip.port.name);
 				}
 			}
+
 			generate_parallel_network(actors, actor_count, inp, out, net, open_ports);
 		}
 	}
@@ -490,7 +494,7 @@ static void define_new_actor(
 			feedback_send = true;
 		}
 		else {
-			p.num_tokens = rand_in_range(1, c->get_max_tokenrate());
+			p.num_tokens = rand_in_range(1, max_tokenrate);
 			p.feedback = false;
 			aip.port = p;
 			open_ports.push_back(aip);
