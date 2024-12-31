@@ -178,6 +178,26 @@ static Actor_Complexity get_complexity(
 	}
 }
 
+static void set_default_tokenrate(
+	Network *net,
+	std::string actor,
+	std::string port)
+{
+	for (auto it = net->get_actors().begin(); it != net->get_actors().end(); ++it) {
+		if ((*it)->class_path == actor) {
+			for (auto p = (*it)->outports.begin(); p != (*it)->outports.end(); ++p) {
+				if (p->name == port) {
+					p->num_tokens = 1;
+					return;
+				}
+			}
+			assert(0);
+		}
+	}
+	assert(0);
+}
+
+
 static void generate_parallel_network(
 	unsigned num_actors,
 	unsigned actor_count,
@@ -278,6 +298,8 @@ static void generate_parallel_network(
 		Actor_Instance_Port aip = *it;
 		Connection con;
 
+		assert(aip.port.num_tokens == 1);
+
 		con.source = aip.inst;
 		con.source_port = aip.port.name;
 		con.sink = join;
@@ -293,6 +315,8 @@ static void generate_parallel_network(
 	for (auto it = right.begin(); it != right.end(); ++it) {
 		Actor_Instance_Port aip = *it;
 		Connection con;
+
+		assert(aip.port.num_tokens == 1);
 
 		con.source = aip.inst;
 		con.source_port = aip.port.name;
@@ -361,6 +385,9 @@ static unsigned check_parallel_network(
 				auto src = open_ports.begin() + rand_in_range(0, range);
 				inp.push_back(*src);
 				open_ports.erase(src);
+				if (src->port.num_tokens != 1) {
+					set_default_tokenrate(net, src->inst->actor->class_path, src->port.name);
+				}
 			}
 			generate_parallel_network(actors, actor_count, inp, out, net, open_ports);
 		}
@@ -415,15 +442,17 @@ static void define_new_actor(
 			feedback_set = true;
 		}
 		else {
-			p.num_tokens = rand_in_range(1, max_tokenrate);
-			p.feedback = false;
-
-			a->inports.push_back(p);
-
 			unsigned range = (unsigned)open_ports.size() / 3;
 			unsigned offset = rand_in_range(0, range);
 
 			auto src = open_ports.begin() + offset;
+
+			assert(src->port.num_tokens >= 1 && src->port.num_tokens <= max_tokenrate);
+
+			p.num_tokens = src->port.num_tokens;
+			p.feedback = false;
+
+			a->inports.push_back(p);
 
 			aip.port = p;
 			Connection con;
@@ -444,13 +473,12 @@ static void define_new_actor(
 		Port p;
 		p.name = "Y" + std::to_string(i);
 
-		aip.port = p;
-
 		if (!feedback_send && !feedbacks.empty() && rand_bool_dist_limit(remaining_actors - static_cast<unsigned>(feedbacks.size()), 25)) {
 			std::cout << " - Connecting feedback loop: " << feedbacks.size() << std::endl;
 			auto x = feedbacks.begin() + rand_in_range(0, static_cast<unsigned>(feedbacks.size()) - 1);
 			p.num_tokens = 1;
 			p.feedback = true;
+			aip.port = p;
 			Connection con;
 			con.sink = x->inst;
 			con.sink_port = x->port.name;
@@ -464,6 +492,7 @@ static void define_new_actor(
 		else {
 			p.num_tokens = rand_in_range(1, c->get_max_tokenrate());
 			p.feedback = false;
+			aip.port = p;
 			open_ports.push_back(aip);
 		}
 

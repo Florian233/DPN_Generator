@@ -678,15 +678,15 @@ static std::vector<action_config> generate_dynamic_action_configs(
 		return result;
 	}
 
-	--num_actions; // one is reserved for action covering all channels as defined by in and out.
-
 	std::vector<Port> guard_factors;
-
+#if 0
+	//This cannot be used, token values are not predictable and therefore the scheduling for dynamic actions with different tokenrates cannot depend on them. We need homogenous output rates!
 	for (auto x : in) {
 		if (x.num_tokens > 1) {
 			guard_factors.push_back(x);
 		}
 	}
+#endif
 
 	/* Actions are generated in pairs of two that cover together all channels. */
 	while (num_actions >= 2 && (!guard_factors.empty() || !globals.empty())) {
@@ -794,8 +794,8 @@ static std::vector<action_config> generate_dynamic_action_configs(
 		num_actions -= 2;
 	}
 
-	/* Remaining reserved 1 + possibly 1 action are like static. */
-	auto x = generate_static_action_configs(num_actions + 1, in, out, complex_guard, globals);
+	/* Remaining possibly 1 action is like static, or all actions if not state vars. */
+	auto x = generate_static_action_configs(num_actions, in, out, complex_guard, globals);
 
 	for (auto a : x) {
 		result.push_back(a);
