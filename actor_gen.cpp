@@ -566,7 +566,7 @@ static std::vector<action_config> generate_static_action_configs(
 	if (guard_factors > 0) {
 
 		for (unsigned i = 0; i < guard_factors; ++i) {
-			if ((rand_bool() || !complex_guard) && !globals.empty() && (global_var_update.size() < globals.size())) {
+			if ((rand_bool() || !complex_guard || (input_used.size() == in.size())) && !globals.empty() && (global_var_update.size() < globals.size())) {
 				std::string f = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
 				while (global_var_update.contains(f)) {
 					f = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
