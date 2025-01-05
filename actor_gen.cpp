@@ -219,6 +219,7 @@ static std::string generate_instruction(
 		arg1 = std::to_string(rand_in_range(0, 33));
 	}
 
+	bool arg2_const = false;
 	if (rand_bool() && (!vars.empty() || !ro_vars.empty())) {
 		if (rand_bool() && !ro_vars.empty()) {
 			unsigned indexr = rand_in_range(0, static_cast<unsigned>(ro_vars.size()) - 1);
@@ -229,7 +230,13 @@ static std::string generate_instruction(
 		}
 	}
 	else {
+		arg2_const = true;
 		arg2 = std::to_string(rand_in_range(1, 55));
+	}
+
+	if (!arg2_const && (inst == 3)) {
+		/* Avoid division by zero */
+		arg2 = "(" + arg2 + " + 1)";
 	}
 
 	return lval + " = " + arg1 + op + arg2 + ";\n";
