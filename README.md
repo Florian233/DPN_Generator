@@ -19,7 +19,8 @@ The possibilities for the certain elements of the actors and the network topolog
 * -i <number>        Number of Input nodes, default 5
 * -o <number>        Number of Output nodes, default 5.
 * -f                 Allows feedback loops.
-* -d                 Allow dynamic nodes - includes the generation of fork-join paris and other dynamic actors.
+* -d                 Allow dynamic nodes. Doesn't include dynamic token flow through different paths, only dynamic token rates for actors.
+* -dd                Allow dynamic token flow through parallel paths by generating fork-join pairs.
 * -c <complexity>    Complexity of the generated actors, simple|if|loop, default if. Simple only generates basic intructions, if inclues simple. Loop can generated foreach loops, but they are not nested. Loop also includes if.
 * -z                 Disable FSM generation.
 * -u                 Disable priority generation.

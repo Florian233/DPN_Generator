@@ -14,6 +14,7 @@ class Config {
 
     unsigned num_nodes = 0;
     bool dynamic = false;
+    bool cond_flow_dynamic = false;
     unsigned num_inputs = 0;
     unsigned num_outputs = 0;
     unsigned min_inst = 1;
@@ -133,5 +134,12 @@ public:
     }
     unsigned get_max_tokenrate(void) {
         return max_tokenrate;
+    }
+
+    void set_cond_flow_dynamic(void) {
+        cond_flow_dynamic = true;
+    }
+    bool get_cond_flow_dynamic(void) {
+        return cond_flow_dynamic;
     }
 };

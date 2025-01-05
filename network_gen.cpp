@@ -373,7 +373,7 @@ static unsigned check_parallel_network(
 	Config* c = c->getInstance();
 	unsigned actors = 0;
 
-	if (c->get_dynamic() && rand_bool_dist(20)) {
+	if (c->get_cond_flow_dynamic() && rand_bool_dist(20)) {
 		unsigned in, out;
 		bool d = get_parallel_net_conf(remaining_actors, c->get_max_ports(), (unsigned)open_ports.size() - open_feedbacks, &in, &out, &actors, outputs);
 

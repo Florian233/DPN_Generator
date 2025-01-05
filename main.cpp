@@ -37,6 +37,7 @@ void parse_command_line_input(int argc, char* argv[]) {
 				"   -o <number>        Number of Output nodes, default 5.\n"
 				"   -f                 Allows feedback loops.\n"
 				"   -d                 Allow dynamic nodes.\n"
+				"   -dd                Allow dynamic tokenflow with parallel paths (fork-join generation)."
 				"   -c <complexity>    Complexity of the generated actors, simple|if|loop, default if.\n"
 				"   -z                 Disable FSM generation.\n"
 				"   -u                 Disable priority generation.\n"
@@ -60,6 +61,9 @@ void parse_command_line_input(int argc, char* argv[]) {
 		}
 		else if (strcmp(argv[i], "-d") == 0) {
 			c->set_dynamic();
+		}
+		else if (strcmp(argv[i], "-dd") == 0) {
+			c->set_cond_flow_dynamic();
 		}
 		else if (strcmp(argv[i], "-z") == 0) {
 			fsm = false;
@@ -134,6 +138,9 @@ int main(int argc, char* argv[]) {
 	std::cout << "Maximum number of ports per actors: " << c->get_max_ports() << std::endl;
 	if (c->get_dynamic()) {
 		std::cout << "Dynamic actors allowed." << std::endl;
+	}
+	if (c->get_cond_flow_dynamic()) {
+		std::cout << "Dynamic token flow with parallel paths allowed." << std::endl;
 	}
 	if (c->get_feedback_loops()) {
 		std::cout << "Feedback loops allowed." << std::endl;
