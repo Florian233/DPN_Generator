@@ -513,7 +513,7 @@ static std::string generate_init_action(
 		n.append("\tvar\n");
 
 		for (auto v : vars) {
-			n.append("\t\t" + v + " := " + std::to_string(rand_in_range(1, 5)));
+			n.append("\t\tint " + v + " := " + std::to_string(rand_in_range(1, 5)));
 			if (vars.back() != v) {
 				n.append(",");
 			}
