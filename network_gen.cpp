@@ -334,6 +334,7 @@ static void generate_parallel_network(
 	con.source = fork;
 	con.source_port = "cond_out";
 	con.sink_port = "cond";
+	net->add_connection(con);
 
 	for (unsigned i = 0; i < outputs; ++i) {
 		Actor_Instance_Port aip;
