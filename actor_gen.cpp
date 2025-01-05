@@ -29,11 +29,11 @@ void generate_input_actor(std::string class_path) {
 	std::string a;
 
 	a.append("actor " + class_path + "() ==> int Y0 : \n\n");
-	a.append("\tint count : = 0;\n\n");
+	a.append("\tint count := 0;\n\n");
 	a.append("\tact1: action ==> Y0 : [count]\n");
 	a.append("\t\tguard count < 10000000\n");
 	a.append("\tdo\n");
-	a.append("\t\tcount : = count + 1;\n");
+	a.append("\t\tcount := count + 1;\n");
 	a.append("\tend\n");
 	a.append("end");
 
@@ -43,18 +43,18 @@ void generate_input_actor(std::string class_path) {
 void generate_output_actor(std::string class_path) {
 	std::string a;
 	a.append("actor " + class_path + "() int X0 ==> :\n\n");
-	a.append("\tuint count : = 0;\n\n");
+	a.append("\tuint count := 0;\n\n");
 	a.append("\t@native procedure test_exit() end\n\n");
 	a.append("\tact1 : action X0 : [x0] ==>\n");
 	a.append("\tguard count < 10000000\n");
 	a.append("\tdo\n");
-	a.append("\t\tcount : = count + 1;\n");
+	a.append("\t\tcount := count + 1;\n");
 	a.append("\tend\n\n");
 	a.append("\tact2 : action ==>\n");
 	a.append("\tguard count = 10000000\n");
 	a.append("\tdo\n");
 	a.append("\t\ttest_exit();\n");
-	a.append("\t\tcount: = count + 1;\n");
+	a.append("\t\tcount := count + 1;\n");
 	a.append("\tend\n");
 	a.append("end");
 
@@ -1020,7 +1020,7 @@ void generate_actor(
 			num = rand_in_range(1, actor->num_instructions / 10);
 		}
 		for (unsigned i = 0; i < num; ++i) {
-			n.append("\tint gstate_" + std::to_string(i) + " = 0;\n");
+			n.append("\tint gstate_" + std::to_string(i) + " := 0;\n");
 			global_vars.push_back("gstate_" + std::to_string(i));
 		}
 		n.append("\n");
