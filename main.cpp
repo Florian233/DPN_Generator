@@ -42,6 +42,9 @@ void parse_command_line_input(int argc, char* argv[]) {
 				"   -z                 Disable FSM generation.\n"
 				"   -u                 Disable priority generation.\n"
 				"   -q                 Disable State Variables.\n"
+				"   -t <num>           Set max tokenrate.\n"
+				"   -l <num>           Set max number of feedback cycles.\n"
+				"   -p <num>           Set max number of ports of the actors.\n"
 				<< std::endl;
 
 			exit(0);
@@ -58,6 +61,15 @@ void parse_command_line_input(int argc, char* argv[]) {
 		}
 		else if (strcmp(argv[i], "-m") == 0) {
 			c->set_max_inst(static_cast<unsigned int>(atoi(argv[++i])));
+		}
+		else if (strcmp(argv[i], "-t") == 0) {
+			c->set_max_tokenrate(static_cast<unsigned int>(atoi(argv[++i])));
+		}
+		else if (strcmp(argv[i], "-l") == 0) {
+			c->set_num_feedbackcycles(static_cast<unsigned int>(atoi(argv[++i])));
+		}
+		else if (strcmp(argv[i], "-p") == 0) {
+			c->set_max_ports(static_cast<unsigned int>(atoi(argv[++i])));
 		}
 		else if (strcmp(argv[i], "-d") == 0) {
 			c->set_dynamic();

@@ -409,7 +409,8 @@ static void define_new_actor(
 	bool allow_feedback,
 	std::vector<Actor_Instance_Port>& feedbacks,
 	unsigned outputs,
-	unsigned max_tokenrate)
+	unsigned max_tokenrate,
+	unsigned& feedback_count)
 {
 	Config* c = c->getInstance();
 	Actor* a = new Actor();
@@ -445,6 +446,7 @@ static void define_new_actor(
 			feedbacks.push_back(aip);
 
 			feedback_set = true;
+			++feedback_count;
 		}
 		else {
 			unsigned range = (unsigned)open_ports.size() / 3;
@@ -571,7 +573,8 @@ static void generate_path(
 		}
 
 		std::vector<Actor_Instance_Port> dummy;
-		define_new_actor(actor_count, net, remaining_actors, open_ports, max_ports, false, dummy, outputs, 1);
+		unsigned fb_dummy;
+		define_new_actor(actor_count, net, remaining_actors, open_ports, max_ports, false, dummy, outputs, 1, fb_dummy);
 
 		++actor_count;
 		--remaining_actors;
@@ -585,6 +588,7 @@ int generate_network(void)
 	Network* net = new Network();
 	unsigned remaining_actors = c->get_num_nodes() - c->get_num_inputs() - c->get_num_outputs();
 	unsigned actor_count = 0;
+	unsigned feedback_count = 0;
 
 	if (!check_satisfiability(remaining_actors, c->get_num_inputs(), c->get_max_ports(), c->get_num_outputs())) {
 		std::cout << "Satisfiability not given." << std::endl;
@@ -636,7 +640,7 @@ int generate_network(void)
 			continue;
 		}
 
-		define_new_actor(actor_count, net, remaining_actors, open_ports, c->get_max_ports(), c->get_feedback_loops(), feedbacks, c->get_num_outputs(), c->get_max_tokenrate());
+		define_new_actor(actor_count, net, remaining_actors, open_ports, c->get_max_ports(), c->get_feedback_loops() && (feedback_count < c->get_num_feedbackcycles()), feedbacks, c->get_num_outputs(), c->get_max_tokenrate(), feedback_count);
 
 		++actor_count;
 		--remaining_actors;

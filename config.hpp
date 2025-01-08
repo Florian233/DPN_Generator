@@ -26,6 +26,7 @@ class Config {
     bool priorities = false;
     bool state_vars = false;
     unsigned max_tokenrate = 0;
+    unsigned max_feedback_loops = 10;
 
     std::filesystem::path output_dir;
 
@@ -141,5 +142,12 @@ public:
     }
     bool get_cond_flow_dynamic(void) {
         return cond_flow_dynamic;
+    }
+
+    void set_num_feedbackcycles(unsigned f) {
+        max_feedback_loops = f;
+    }
+    unsigned get_num_feedbackcycles(void) {
+        return max_feedback_loops;
     }
 };

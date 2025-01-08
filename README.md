@@ -25,3 +25,6 @@ The possibilities for the certain elements of the actors and the network topolog
 * -z                 Disable FSM generation.
 * -u                 Disable priority generation.
 * -q                 Disable State Variables.
+* -t <num>           Maximal tokenrate.
+* -l <num>           Maximal number of feedback cycles - not necessarily the exact number of generated cycles, as this influence by randomness.
+* -p <num>           Maximal number of ports of the actors.
