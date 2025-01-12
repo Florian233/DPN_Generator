@@ -376,6 +376,9 @@ static std::string generate_action(
 	std::string n;
 	n.append("\t" + name + " : action");
 	for (auto it = inports.begin(); it != inports.end(); ++it) {
+		if (it->second == 0) {
+			continue;
+		}
 		if (it != inports.begin()) {
 			n.append(",");
 		}
@@ -397,6 +400,9 @@ static std::string generate_action(
 
 	n.append(" ==>");
 	for (auto it = outports.begin(); it != outports.end(); ++it) {
+		if (it->second == 0) {
+			continue;
+		}
 		if (it != outports.begin()) {
 			n.append(",");
 		}
@@ -636,13 +642,50 @@ static std::vector<action_config> generate_static_action_configs(
 	return result;
 }
 
+static unsigned determine_division_factors(
+	std::vector<Port>& in,
+	std::vector<Port>& out,
+	std::vector<unsigned>& factors,
+	unsigned max_rate)
+{
+	unsigned result = 0;
+	for (unsigned r = 1; r <= max_rate; ++r) {
+		bool ok = true;
+
+		for (auto it = in.begin(); it != in.end(); ++it) {
+			if ((it->num_tokens % r) != 0) {
+				ok = false;
+				break;
+			}
+		}
+
+		if (!ok) {
+			continue;
+		}
+
+		for (auto it = out.begin(); it != out.end(); ++it) {
+			if ((it->num_tokens % r) != 0) {
+				ok = false;
+				break;
+			}
+		}
+
+		if (ok) {
+			++result;
+			factors.push_back(r);
+		}
+	}
+	return result;
+}
+
 static std::vector<action_config> generate_dynamic_action_configs(
 	unsigned num_actions,
 	std::vector<Port>& in,
 	std::vector<Port>& out,
 	bool complex_guard,
 	std::vector<std::string> globals,
-	bool fsm)
+	bool fsm,
+	unsigned max_rate)
 {
 	std::vector<action_config> result;
 
@@ -650,76 +693,36 @@ static std::vector<action_config> generate_dynamic_action_configs(
 		return result;
 	}
 
-	if (fsm || rand_bool_dist(5) || (num_actions < 3)) {
+	std::vector<unsigned> div_factors;
+	unsigned num_div_factors = determine_division_factors(in, out, div_factors, max_rate);
+
+	if (fsm || rand_bool_dist(5) || (num_actions < 3) || globals.empty()) {
 		result = generate_static_action_configs(num_actions, in, out, complex_guard, globals);
 
 		for (auto it = result.begin(); it != result.end(); ++it) {
+
+			unsigned factor = div_factors.at(rand_in_range(0, num_div_factors - 1));
+
 			for (auto in_it = it->in.begin(); in_it != it->in.end(); ++in_it) {
-				if (rand_bool() && (in_it->second > 1)) {
-					in_it->second = in_it->second / 2;
-				}
-				else {
-					if (in_it->second != 1) {
-						in_it->second -= rand_in_range(0, in_it->second - 1);
-					}
-				}
+				in_it->second = in_it->second / factor;
 			}
 			for (auto out_it = it->out.begin(); out_it != it->out.end(); ++out_it) {
-				if (rand_bool() && (out_it->second > 1)) {
-					out_it->second = out_it->second / 2;
-				}
-				else {
-					if (out_it->second != 1) {
-						out_it->second -= rand_in_range(0, out_it->second - 1);
-					}
-				}
+				out_it->second = out_it->second / factor;
 			}
 		}
 
 		return result;
 	}
 
-	std::vector<Port> guard_factors;
-#if 0
-	//This cannot be used, token values are not predictable and therefore the scheduling for dynamic actions with different tokenrates cannot depend on them. We need homogenous output rates!
-	for (auto x : in) {
-		if (x.num_tokens > 1) {
-			guard_factors.push_back(x);
-		}
-	}
-#endif
-
 	/* Actions are generated in pairs of two that cover together all channels. */
-	while (num_actions >= 2 && (!guard_factors.empty() || !globals.empty())) {
+	while (num_actions >= 2 && !globals.empty()) {
 		std::string factor;
 		bool p = false;
 		Port port;
-		if (!guard_factors.empty() && !globals.empty()) {
-			if (rand_bool()) {
-				p = true;
-				port = guard_factors.at(rand_in_range(0, static_cast<unsigned>(guard_factors.size()) - 1));
-				factor = port.name;
-				to_lower_case(factor);
-				factor.append("_0");
-			}
-			else {
-				factor = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
-			}
-		}
-		else if (!guard_factors.empty()) {
-			p = true;
-			port = guard_factors.at(rand_in_range(0, static_cast<unsigned>(guard_factors.size()) - 1));
-			factor = port.name;
-			to_lower_case(factor);
-			factor.append("_0");
-		}
-		else if (!globals.empty()) {
-			factor = globals.at(rand_in_range(0, static_cast<unsigned>(globals.size()) - 1));
-		}
-		else {
-			/* This cannot happen. */
-			assert(0);
-		}
+
+		factor = *(globals.begin());
+		globals.erase(globals.begin());
+
 
 		std::map<std::string, unsigned> inp1;
 		std::map<std::string, unsigned> inp2;
@@ -767,13 +770,12 @@ static std::vector<action_config> generate_dynamic_action_configs(
 			}
 		}
 
-		unsigned bound = rand_in_range(5, 13);
-		guard1 = factor + " < " + std::to_string(bound);
-		guard2 = factor + " >= " + std::to_string(bound);
+		guard1 = factor + " = 0";
+		guard2 = factor + " = 1";
 		if (!p) {
 			/* Must be based on state var, we must update it */
-			code1 = "\t\t" + factor + " := " + factor + " + 1;\n";
-			code2 = "\t\t" + factor + " := (" + factor + " + 1) % " + std::to_string(bound + rand_in_range(4, 18)) + "; \n";
+			code1 = "\t\t" + factor + " := 1;\n";
+			code2 = "\t\t" + factor + " := 0; \n";
 		}
 
 		action_config one;
@@ -799,6 +801,16 @@ static std::vector<action_config> generate_dynamic_action_configs(
 	auto x = generate_static_action_configs(num_actions, in, out, complex_guard, globals);
 
 	for (auto a : x) {
+
+		unsigned factor = div_factors.at(rand_in_range(0, num_div_factors - 1));
+
+		for (auto in_it = a.in.begin(); in_it != a.in.end(); ++in_it) {
+			in_it->second = in_it->second / factor;
+		}
+		for (auto out_it = a.out.begin(); out_it != a.out.end(); ++out_it) {
+			out_it->second = out_it->second / factor;
+		}
+
 		result.push_back(a);
 	}
 
@@ -849,7 +861,7 @@ static std::string generate_actions(
 			std::vector<action_config> v;
 
 			if (dynamic) {
-				v = generate_dynamic_action_configs(this_num, in, out, complex_guard, globals, true);
+				v = generate_dynamic_action_configs(this_num, in, out, complex_guard, globals, true, c->get_max_tokenrate());
 			}
 			else {
 				v = generate_static_action_configs(this_num, in, out, complex_guard, globals);
@@ -924,7 +936,7 @@ static std::string generate_actions(
 	else {
 		std::vector<action_config> a;
 		if (dynamic) {
-			a = generate_dynamic_action_configs(num_actions, in, out, complex_guard, globals, false);
+			a = generate_dynamic_action_configs(num_actions, in, out, complex_guard, globals, false, c->get_max_tokenrate());
 		}
 		else {
 			a = generate_static_action_configs(num_actions, in, out, complex_guard, globals);
