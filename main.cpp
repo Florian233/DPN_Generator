@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
+#include <cstring>
 
 #include "config.hpp"
 #include "network_gen.hpp"

@@ -8,6 +8,7 @@
 #include <map>
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 
 using State = std::string;
 using Next_State = std::string;
