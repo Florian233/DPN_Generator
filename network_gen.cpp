@@ -456,7 +456,12 @@ static void define_new_actor(
 
 			assert(src->port.num_tokens >= 1 && src->port.num_tokens <= max_tokenrate);
 
-			p.num_tokens = src->port.num_tokens;
+			if (c->get_uneq_tokenrates()) {
+				p.num_tokens = rand_in_range(1, max_tokenrate);
+			}
+			else {
+				p.num_tokens = src->port.num_tokens;
+			}
 			p.feedback = false;
 
 			a->inports.push_back(p);

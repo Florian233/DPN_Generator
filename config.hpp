@@ -28,6 +28,8 @@ class Config {
     unsigned max_tokenrate = 0;
     unsigned max_feedback_loops = 10;
 
+    bool uneq_tokenrates = false;
+
     std::filesystem::path output_dir;
 
 
@@ -149,5 +151,12 @@ public:
     }
     unsigned get_num_feedbackcycles(void) {
         return max_feedback_loops;
+    }
+
+    void set_uneq_tokenrates(void) {
+        uneq_tokenrates = true;
+    }
+    bool get_uneq_tokenrates(void) {
+        return uneq_tokenrates;
     }
 };

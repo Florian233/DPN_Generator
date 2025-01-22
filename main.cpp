@@ -45,6 +45,7 @@ void parse_command_line_input(int argc, char* argv[]) {
 				"   -t <num>           Set max tokenrate.\n"
 				"   -l <num>           Set max number of feedback cycles.\n"
 				"   -p <num>           Set max number of ports of the actors.\n"
+				"   -e                 Allow token consumption rates that are not equal of the production rates (experimental)"
 				<< std::endl;
 
 			exit(0);
@@ -85,6 +86,9 @@ void parse_command_line_input(int argc, char* argv[]) {
 		}
 		else if (strcmp(argv[i], "-q") == 0) {
 			statevars = false;
+		}
+		else if (strcmp(argv[i], "-e") == 0) {
+			c->set_uneq_tokenrates();
 		}
 		else if (strcmp(argv[i], "-n") == 0) {
 			c->set_num_nodes(static_cast<unsigned int>(atoi(argv[++i])));
