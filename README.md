@@ -28,3 +28,4 @@ The possibilities for the certain elements of the actors and the network topolog
 * -t <num>           Maximal tokenrate.
 * -l <num>           Maximal number of feedback cycles - not necessarily the exact number of generated cycles, as this influence by randomness.
 * -p <num>           Maximal number of ports of the actors.
+* -e                 Allow token consumption rates of actors that are not equal of the production rates of the actors producing the input tokens. This option is experimental, and therefore it cannot be guaranteed at the moment, that deadlockfree Networks are generated!
