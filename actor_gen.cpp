@@ -425,7 +425,7 @@ static std::string generate_action(
 	n.append("\n");
 	if (!guard.empty()) {
 		n.append("\tguard\n");
-		n.append(guard);
+		n.append("\t\t" + guard);
 		n.append("\n");
 	}
 
@@ -874,7 +874,6 @@ static std::string generate_actions(
 
 			for (auto x : v) {
 				std::string name = "act" + std::to_string(action_count);
-				++action_count;
 				unsigned inst;
 				if (out.size() > max_instructions) {
 					inst = max_instructions;
@@ -896,7 +895,7 @@ static std::string generate_actions(
 				}
 
 				actions_in_state.push_back(name);
-
+				++action_count;
 				first = false;
 			}
 
@@ -1043,7 +1042,7 @@ void generate_actor(
 	n.append(generate_actions(actor->dynamic, actor->num_actions, actor->inports, actor->outports, actor->FSM, fsm, actor->num_states,
 			                  actor->priorities, prios, actor->num_instructions, actor->complexity, actor->complex_guards, global_vars));
 
-	if (actor->FSM) {
+	if (!fsm.empty()) {
 		n.append("\tschedule fsm " + start_state + ":\n");
 		for (auto it = fsm.begin(); it != fsm.end(); ++it) {
 			n.append("\t\t" + std::get<0>(*it) + "(" + std::get<1>(*it) + ") --> " + std::get<2>(*it) + ";\n");
@@ -1051,7 +1050,7 @@ void generate_actor(
 		n.append("\tend\n\n");
 	}
 
-	if (actor->priorities) {
+	if (!prios.empty()) {
 		n.append("\tpriority\n");
 		for (auto it = prios.begin(); it != prios.end(); ++it) {
 			n.append("\t\t" + it->first + " > " + it->second+";\n");
