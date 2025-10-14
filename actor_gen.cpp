@@ -234,7 +234,7 @@ static std::string generate_instruction(
 		arg2 = std::to_string(rand_in_range(1, 55));
 	}
 
-	return lval + " = " + arg1 + op + arg2 + ";\n";
+	return lval + " := " + arg1 + op + arg2 + ";\n";
 }
 
 static std::string generate_cond_block(
