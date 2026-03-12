@@ -27,6 +27,8 @@ class Config {
     bool state_vars = false;
     unsigned max_tokenrate = 0;
     unsigned max_feedback_loops = 10;
+    bool layered_gen = false;
+    unsigned layered_max = 0;
 
     bool uneq_tokenrates = false;
 
@@ -158,5 +160,19 @@ public:
     }
     bool get_uneq_tokenrates(void) {
         return uneq_tokenrates;
+    }
+
+    void set_layered_generation(void) {
+        layered_gen = true;
+    }
+    bool get_layered_generation(void) {
+        return layered_gen;
+    }
+
+    void set_layered_max(unsigned m) {
+        layered_max = m;
+    }
+    unsigned get_layered_max(void) {
+        return layered_max;
     }
 };

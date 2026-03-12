@@ -5,6 +5,8 @@
 #include "file_writer.hpp"
 #include "random.hpp"
 #include <cassert>
+#include <map>
+#include <vector>
 
 static Actor* fork_gen[10];
 static Actor* join_gen[10];
@@ -46,14 +48,18 @@ static bool evaluate_port_criteria(
 	unsigned cur_ports_in,
 	unsigned cur_ports_out,
 	unsigned remaining_open_channels,
-	unsigned outputs)
+	unsigned outputs,
+	/* the following two are only != 0 if layer generation is enabled */
+	unsigned remaining_in_layer,
+	unsigned open_next_layer_ports)
 {
 	remaining_actors -= 1; /* One is used for the one we are evaluating currently. */
-	unsigned open_after = remaining_open_channels + cur_ports_out - cur_ports_in;
+	unsigned open_after = remaining_open_channels + cur_ports_out - cur_ports_in + open_next_layer_ports;
 
+	int limit = (remaining_actors - remaining_in_layer) * max_ports + std::min(remaining_in_layer * max_ports, remaining_open_channels);
 
-	int upper_bound = remaining_actors * max_ports - remaining_actors + open_after;
-	int lower_bound = remaining_actors - (int)(remaining_actors * max_ports) + open_after;
+	int upper_bound = limit - remaining_actors + open_after;
+	int lower_bound = remaining_actors - limit + open_after;
 
 	std::cout << "Upper bound: " << upper_bound << " Lower bound: " << lower_bound << " rem: " << remaining_actors << " remo:" << remaining_open_channels << " in: " << cur_ports_in << " out: " << cur_ports_out << " outs: " << outputs << std::endl;
 
@@ -68,13 +74,28 @@ static bool evaluate_port_criteria(
 	}
 }
 
+static bool evaluate_port_criteria_in_layer(
+	unsigned cur_ports_in,
+	unsigned remaining_open_channels,
+	unsigned rem_in_layer)
+{
+	Config* c = c->getInstance();
+	if (!c->get_layered_generation()) {
+		return true;
+	}
+	return ((remaining_open_channels - cur_ports_in) >= rem_in_layer);
+}
+
 static void get_valid_port_nums(
 	unsigned remaining_actors,
 	unsigned max_ports,
 	unsigned remaining_open_channels,
 	unsigned* in,
 	unsigned* out,
-	unsigned outputs)
+	unsigned outputs,
+	/* the following two are only != 0 if layer generation is enabled */
+	unsigned remaining_in_layer,
+	unsigned open_next_layer_ports)
 {
 	assert(remaining_actors >= 1);
 	assert(max_ports >= 1);
@@ -86,9 +107,11 @@ static void get_valid_port_nums(
 	in_tmp = rand_in_range(1, range);
 	out_tmp = rand_in_range(1, max_ports);
 
-	while (!evaluate_port_criteria(remaining_actors, max_ports, in_tmp, out_tmp, remaining_open_channels, outputs)) {
+	while (!evaluate_port_criteria(remaining_actors, max_ports, in_tmp, out_tmp, remaining_open_channels, outputs, remaining_in_layer, open_next_layer_ports) ||
+		  !evaluate_port_criteria_in_layer(in_tmp, remaining_open_channels, remaining_in_layer)) {
 		in_tmp = rand_in_range(1, range);
 		out_tmp = rand_in_range(1, max_ports);
+		std::cout << "remaining in layer: " << remaining_in_layer << " open next: " << open_next_layer_ports << std::endl;
 	}
 
 	*in = in_tmp;
@@ -126,7 +149,7 @@ static bool get_parallel_net_conf(
 		num_in = rand_in_range(2, range);
 		num_out = num_in - 1;
 
-		if (!evaluate_port_criteria(num_a, max_ports, num_in, num_out, remaining_open_channels, outputs)) {
+		if (!evaluate_port_criteria(num_a, max_ports, num_in, num_out, remaining_open_channels, outputs, 0, 0)) {
 
 			if (rand_bool_dist(4)) {
 				--num_a;
@@ -204,7 +227,8 @@ static void generate_parallel_network(
 	std::vector<Actor_Instance_Port> inputs,
 	unsigned outputs,
 	Network* net,
-	std::vector<Actor_Instance_Port>& open_ports)
+	std::vector<Actor_Instance_Port>& open_ports,
+	std::vector<Actor_Instance_Port>& created_out_ports)
 {
 	Config* c = c->getInstance();
 	std::vector<Actor_Instance_Port> left;
@@ -342,7 +366,7 @@ static void generate_parallel_network(
 		aip.port.feedback = false;
 		aip.port.name = "Y" + std::to_string(i);
 		aip.port.num_tokens = 1;
-		open_ports.push_back(aip);
+		created_out_ports.push_back(aip);
 	}
 }
 
@@ -354,7 +378,7 @@ static bool check_satisfiability(
 {
 	for (unsigned i = 1; i < max_ports; ++i) {
 		for (unsigned j = 1; j < max_ports; ++j) {
-			if (evaluate_port_criteria(remaining_actors, max_ports, i, j, inputs, outputs)) {
+			if (evaluate_port_criteria(remaining_actors, max_ports, i, j, inputs, outputs, 0, 0)) {
 				return true;
 			}
 		}
@@ -366,6 +390,7 @@ static bool check_satisfiability(
 static unsigned check_parallel_network(
 	unsigned remaining_actors,
 	std::vector<Actor_Instance_Port>& open_ports,
+	std::vector<Actor_Instance_Port>& created_out_ports,
 	Network *net,
 	unsigned actor_count,
 	unsigned outputs,
@@ -394,7 +419,7 @@ static unsigned check_parallel_network(
 				}
 			}
 
-			generate_parallel_network(actors, actor_count, inp, out, net, open_ports);
+			generate_parallel_network(actors, actor_count, inp, out, net, open_ports, created_out_ports);
 		}
 	}
 	return actors;
@@ -405,12 +430,15 @@ static void define_new_actor(
 	Network* net,
 	unsigned remaining_actors,
 	std::vector<Actor_Instance_Port>& open_ports,
+	std::vector<Actor_Instance_Port>& created_out_ports,
 	unsigned max_ports,
 	bool allow_feedback,
 	std::vector<Actor_Instance_Port>& feedbacks,
 	unsigned outputs,
 	unsigned max_tokenrate,
-	unsigned& feedback_count)
+	unsigned& feedback_count,
+	unsigned rem_in_layer,
+	unsigned open_next_layer)
 {
 	Config* c = c->getInstance();
 	Actor* a = new Actor();
@@ -421,7 +449,7 @@ static void define_new_actor(
 	inst->name = "actor_" + std::to_string(actor_count) + "_inst";
 
 	unsigned in, out;
-	get_valid_port_nums(remaining_actors, max_ports, (unsigned)(open_ports.size() - feedbacks.size()), &in, &out, outputs);
+	get_valid_port_nums(remaining_actors, max_ports, (unsigned)(open_ports.size() - feedbacks.size()), &in, &out, outputs, rem_in_layer, open_next_layer);
 
 	std::cout << "Defining actor with in: " << in << " and out: " << out << std::endl;
 
@@ -505,7 +533,7 @@ static void define_new_actor(
 			p.num_tokens = rand_in_range(1, max_tokenrate);
 			p.feedback = false;
 			aip.port = p;
-			open_ports.push_back(aip);
+			created_out_ports.push_back(aip);
 		}
 
 		a->outports.push_back(p);
@@ -570,7 +598,7 @@ static void generate_path(
 
 	while (remaining_actors > 0) {
 
-		unsigned pn = check_parallel_network(remaining_actors, open_ports, net, actor_count, outputs, 0);
+		unsigned pn = check_parallel_network(remaining_actors, open_ports, open_ports, net, actor_count, outputs, 0);
 		if (pn != 0) {
 			remaining_actors -= pn;
 			actor_count += pn;
@@ -579,7 +607,7 @@ static void generate_path(
 
 		std::vector<Actor_Instance_Port> dummy;
 		unsigned fb_dummy;
-		define_new_actor(actor_count, net, remaining_actors, open_ports, max_ports, false, dummy, outputs, 1, fb_dummy);
+		define_new_actor(actor_count, net, remaining_actors, open_ports, open_ports, max_ports, false, dummy, outputs, 1, fb_dummy, 0, 0);
 
 		++actor_count;
 		--remaining_actors;
@@ -638,17 +666,35 @@ int generate_network(void)
 	}
 
 	while (remaining_actors > 0) {
-		unsigned pn = check_parallel_network(remaining_actors, open_ports, net, actor_count, c->get_num_outputs(), static_cast<unsigned>(feedbacks.size()));
+		unsigned pn = check_parallel_network(remaining_actors, open_ports, open_ports, net, actor_count, c->get_num_outputs(), static_cast<unsigned>(feedbacks.size()));
 		if (pn != 0) {
 			remaining_actors -= pn;
 			actor_count += pn;
 			continue;
 		}
+		unsigned rem_in_layer = 1;
+		std::vector<Actor_Instance_Port> created_out_ports;
+		if (c->get_layered_generation()) {
+			rem_in_layer = rand_in_range(1, c->get_layered_max() > remaining_actors ? remaining_actors : c->get_layered_max());
+			if (rem_in_layer > open_ports.size()) {
+				rem_in_layer = open_ports.size();
+			}
+		}
 
-		define_new_actor(actor_count, net, remaining_actors, open_ports, c->get_max_ports(), c->get_feedback_loops() && (feedback_count < c->get_num_feedbackcycles()), feedbacks, c->get_num_outputs(), c->get_max_tokenrate(), feedback_count);
+		do {
+			--rem_in_layer;
+			std::cout << "Rem in layer: " << rem_in_layer << " open: " << open_ports.size() << " next open: " << created_out_ports.size() << std::endl;
 
-		++actor_count;
-		--remaining_actors;
+			define_new_actor(actor_count, net, remaining_actors, open_ports, created_out_ports, c->get_max_ports(),
+				c->get_feedback_loops() && (feedback_count < c->get_num_feedbackcycles()), feedbacks,
+				c->get_num_outputs(), c->get_max_tokenrate(), feedback_count, rem_in_layer, static_cast<unsigned>(created_out_ports.size()));
+			++actor_count;
+			--remaining_actors;
+		} while (rem_in_layer != 0);
+
+		for (auto x : created_out_ports) {
+			open_ports.push_back(x);
+		}
 	}
 
 	if (!feedbacks.empty()) {

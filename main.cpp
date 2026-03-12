@@ -46,7 +46,8 @@ void parse_command_line_input(int argc, char* argv[]) {
 				"   -t <num>           Set max tokenrate.\n"
 				"   -l <num>           Set max number of feedback cycles.\n"
 				"   -p <num>           Set max number of ports of the actors.\n"
-				"   -e                 Allow token consumption rates that are not equal of the production rates (experimental)"
+				"   -e                 Allow token consumption rates that are not equal of the production rates (experimental)\n"
+				"   --layered <num>    Use layered generation with max <num> nodes per layer\n"
 				<< std::endl;
 
 			exit(0);
@@ -113,6 +114,10 @@ void parse_command_line_input(int argc, char* argv[]) {
 				exit(1);
 			}
 		}
+		else if (strcmp(argv[i], "--layered") == 0) {
+			c->set_layered_generation();
+			c->set_layered_max(static_cast<unsigned int>(atoi(argv[++i])));
+		}
 		else {
 			std::cout << "Error:Unknown input " << argv[i] << std::endl;
 			exit(1);
@@ -170,6 +175,14 @@ int main(int argc, char* argv[]) {
 	}
 	if (c->get_statevars()) {
 		std::cout << "State variables enabled." << std::endl;
+	}
+
+	if (c->get_layered_generation()) {
+		std::cout << "Layered generation of DPN enabled with " << c->get_layered_max() << " nodes maximum per layer." << std::endl;
+		if (c->get_layered_max() == 0) {
+			std::cout << "At least one node per layer required." << std::endl;
+			return 1;
+		}
 	}
 
 	if ((c->get_num_nodes() < (c->get_num_inputs() + c->get_num_outputs())) || 
