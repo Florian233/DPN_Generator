@@ -61,7 +61,7 @@ static bool evaluate_port_criteria(
 	int upper_bound = limit - remaining_actors + open_after;
 	int lower_bound = remaining_actors - limit + open_after;
 
-	std::cout << "Upper bound: " << upper_bound << " Lower bound: " << lower_bound << " rem: " << remaining_actors << " remo:" << remaining_open_channels << " in: " << cur_ports_in << " out: " << cur_ports_out << " outs: " << outputs << std::endl;
+	//std::cout << "Upper bound: " << upper_bound << " Lower bound: " << lower_bound << " rem: " << remaining_actors << " remo:" << remaining_open_channels << " in: " << cur_ports_in << " out: " << cur_ports_out << " outs: " << outputs << std::endl;
 
 	if (upper_bound < (int)outputs) {
 		return false;
@@ -111,7 +111,6 @@ static void get_valid_port_nums(
 		  !evaluate_port_criteria_in_layer(in_tmp, remaining_open_channels, remaining_in_layer)) {
 		in_tmp = rand_in_range(1, range);
 		out_tmp = rand_in_range(1, max_ports);
-		std::cout << "remaining in layer: " << remaining_in_layer << " open next: " << open_next_layer_ports << std::endl;
 	}
 
 	*in = in_tmp;
@@ -683,8 +682,7 @@ int generate_network(void)
 
 		do {
 			--rem_in_layer;
-			std::cout << "Rem in layer: " << rem_in_layer << " open: " << open_ports.size() << " next open: " << created_out_ports.size() << std::endl;
-
+			
 			define_new_actor(actor_count, net, remaining_actors, open_ports, created_out_ports, c->get_max_ports(),
 				c->get_feedback_loops() && (feedback_count < c->get_num_feedbackcycles()), feedbacks,
 				c->get_num_outputs(), c->get_max_tokenrate(), feedback_count, rem_in_layer, static_cast<unsigned>(created_out_ports.size()));
@@ -702,7 +700,7 @@ int generate_network(void)
 		return 1;
 	}
 
-	if (open_ports.size() > c->get_num_outputs()) {
+	if (open_ports.size() != c->get_num_outputs()) {
 		std::cout << "Generation failed." << std::endl;
 		return 1;
 	}
