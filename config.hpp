@@ -34,6 +34,8 @@ class Config {
 
     std::filesystem::path output_dir;
 
+    /* Support for current benchmarks */
+    bool rtos = false;
 
 public:
     static Config* getInstance() {
@@ -174,5 +176,12 @@ public:
     }
     unsigned get_layered_max(void) {
         return layered_max;
+    }
+
+    bool get_rtos(void) {
+        return rtos;
+    }
+    void set_rtos(void) {
+        rtos = true;
     }
 };

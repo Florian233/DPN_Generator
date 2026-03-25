@@ -676,7 +676,7 @@ int generate_network(void)
 		if (c->get_layered_generation()) {
 			rem_in_layer = rand_in_range(1, c->get_layered_max() > remaining_actors ? remaining_actors : c->get_layered_max());
 			if (rem_in_layer > open_ports.size()) {
-				rem_in_layer = open_ports.size();
+				rem_in_layer = static_cast<unsigned>(open_ports.size());
 			}
 		}
 
@@ -731,8 +731,12 @@ int generate_network(void)
 
 	/* The following could be extended by tokenrate_out_sum, but for now the numbers are hardcoded in the actors. */
 	unsigned prod_tokens = c->get_num_outputs();
-	generate_native_code(prod_tokens);
-
+	if (c->get_rtos()) {
+		generate_native_code_rtos(prod_tokens);
+	}
+	else {
+		generate_native_code(prod_tokens);
+	}
 	std::cout << "Writing network." << std::endl;
 
 	write_network(net);

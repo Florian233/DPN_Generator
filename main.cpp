@@ -48,6 +48,7 @@ void parse_command_line_input(int argc, char* argv[]) {
 				"   -p <num>           Set max number of ports of the actors.\n"
 				"   -e                 Allow token consumption rates that are not equal of the production rates (experimental)\n"
 				"   --layered <num>    Use layered generation with max <num> nodes per layer\n"
+				"   -r                 RTOS native code.\n"
 				<< std::endl;
 
 			exit(0);
@@ -118,6 +119,9 @@ void parse_command_line_input(int argc, char* argv[]) {
 			c->set_layered_generation();
 			c->set_layered_max(static_cast<unsigned int>(atoi(argv[++i])));
 		}
+		else if (strcmp(argv[i], "-r") == 0) {
+			c->set_rtos();
+		}
 		else {
 			std::cout << "Error:Unknown input " << argv[i] << std::endl;
 			exit(1);
@@ -175,6 +179,9 @@ int main(int argc, char* argv[]) {
 	}
 	if (c->get_statevars()) {
 		std::cout << "State variables enabled." << std::endl;
+	}
+	if (c->get_rtos()) {
+		std::cout << "Generating RTOS native code." << std::endl;
 	}
 
 	if (c->get_layered_generation()) {

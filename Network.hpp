@@ -6,8 +6,8 @@
 
 struct Port {
 	std::string name;
-	unsigned num_tokens;
-	bool feedback;
+	unsigned num_tokens = 0;
+	bool feedback = false;
 };
 
 
