@@ -86,7 +86,7 @@ void generate_native_code_rtos(unsigned produced_tokens) {
 	n.append("void test_exit(void)\n");
 	n.append("{\n");
 	n.append("\tif ((p4_atomic_fetch_and_add(&cnt, 1) + 1) == " + std::to_string(produced_tokens) + ") {\n");
-	n.append("\t\tp4_task_terminate(P4_TASK_MYSELF);\n");
+	n.append("\t\tp4_thread_except(P4_THREAD_MYSELF);\n");
 	n.append("\t}\n");
 	n.append("}");
 
