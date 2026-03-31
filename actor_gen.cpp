@@ -45,7 +45,7 @@ void generate_output_actor(std::string class_path) {
 	std::string a;
 	a.append("actor " + class_path + "() int X0 ==> :\n\n");
 	a.append("\tuint count := 0;\n\n");
-	a.append("\t@native procedure test_exit() end\n\n");
+	a.append("\t@native procedure test_exit_rnd() end\n\n");
 	a.append("\tact1 : action X0 : [x0] ==>\n");
 	a.append("\tguard count < 10000000\n");
 	a.append("\tdo\n");
@@ -68,14 +68,14 @@ void generate_native_code(unsigned produced_tokens) {
 	n.append("#include <stdio.h>\n");
 	n.append("#include <stdlib.h>\n\n");
 	n.append("__declspec(align(4)) static volatile int cnt = 0;\n\n");
-	n.append("void test_exit(void)\n");
+	n.append("void test_exit_rnd(void)\n");
 	n.append("{\n");
 	n.append("\tif (InterlockedIncrementAcquire(&cnt) == " + std::to_string(produced_tokens) + ") {\n");
 	n.append("\t\texit(0);\n");
 	n.append("\t}\n");
 	n.append("}");
 
-	write_native_file("native.c", n);
+	write_native_file("native_rnd.c", n);
 }
 
 void generate_native_code_rtos(unsigned produced_tokens) {
@@ -83,14 +83,14 @@ void generate_native_code_rtos(unsigned produced_tokens) {
 	n.append("#include <p4.h>\n");
 	n.append("#include <vm.h>\n");
 	n.append("static volatile P4_atomic_t cnt = 0;\n\n");
-	n.append("void test_exit(void)\n");
+	n.append("void test_exit_rnd(void)\n");
 	n.append("{\n");
 	n.append("\tif ((p4_atomic_fetch_and_add(&cnt, 1) + 1) == " + std::to_string(produced_tokens) + ") {\n");
 	n.append("\t\tp4_thread_except(P4_THREAD_MYSELF);\n");
 	n.append("\t}\n");
 	n.append("}");
 
-	write_native_file("native.c", n);
+	write_native_file("native_rnd.c", n);
 }
 
 
