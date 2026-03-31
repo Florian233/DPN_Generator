@@ -54,7 +54,7 @@ void generate_output_actor(std::string class_path) {
 	a.append("\tact2 : action ==>\n");
 	a.append("\tguard count = 10000000\n");
 	a.append("\tdo\n");
-	a.append("\t\test_exit_rnd();\n");
+	a.append("\t\ttest_exit_rnd();\n");
 	a.append("\t\tcount := count + 1;\n");
 	a.append("\tend\n");
 	a.append("end");
