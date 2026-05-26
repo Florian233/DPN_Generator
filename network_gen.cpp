@@ -11,6 +11,9 @@
 static Actor* fork_gen[10];
 static Actor* join_gen[10];
 
+static unsigned cond_nesting_level = 0;
+static unsigned cond_nesting_max = 0;
+
 static void generate_path(
 	Network* net,
 	unsigned remaining_actors,
@@ -18,6 +21,12 @@ static void generate_path(
 	unsigned outputs,
 	unsigned actor_count,
 	unsigned max_ports);
+
+static bool check_satisfiability(
+	unsigned remaining_actors,
+	unsigned inputs,
+	unsigned max_ports,
+	unsigned outputs);
 
 
 static void write_network(
@@ -107,10 +116,15 @@ static void get_valid_port_nums(
 	in_tmp = rand_in_range(1, range);
 	out_tmp = rand_in_range(1, max_ports);
 
+	unsigned attempts = 0;
 	while (!evaluate_port_criteria(remaining_actors, max_ports, in_tmp, out_tmp, remaining_open_channels, outputs, remaining_in_layer, open_next_layer_ports) ||
 		  !evaluate_port_criteria_in_layer(in_tmp, remaining_open_channels, remaining_in_layer)) {
 		in_tmp = rand_in_range(1, range);
 		out_tmp = rand_in_range(1, max_ports);
+		if (++attempts > 10000) {
+			assert(0 && "get_valid_port_nums: no valid port configuration found");
+			break;
+		}
 	}
 
 	*in = in_tmp;
@@ -126,47 +140,48 @@ static bool get_parallel_net_conf(
 	unsigned* actors,
 	unsigned outputs)
 {
-	unsigned num_a, num_in, num_out;
-
-	if (remaining_actors/4 < 4) {
+	if (remaining_actors < 4) {
 		return false;
 	}
 	if (remaining_open_channels < 2) {
 		return false;
 	}
 
-	num_a = remaining_actors / 4;
+	unsigned num_a = remaining_actors < 30 ? remaining_actors : 30;
 	num_a = rand_in_range(4, num_a);
-	/* Limit it a little. */
-	if (num_a > 30) {
-		num_a = 30;
-	}
 
 	unsigned range = remaining_open_channels < max_ports ? remaining_open_channels : max_ports;
 
 	do {
-		num_in = rand_in_range(2, range);
-		num_out = num_in - 1;
+		unsigned num_in = rand_in_range(2, range);
+		unsigned num_out = num_in - 1;
 
-		if (!evaluate_port_criteria(num_a, max_ports, num_in, num_out, remaining_open_channels, outputs, 0, 0)) {
+		/* Check that the OUTER state after this parallel block is still
+		   satisfiable: the remaining actors must be able to close the
+		   network down to `outputs`. */
+		unsigned post_open = remaining_open_channels - num_in + num_out;
+		unsigned post_remaining = remaining_actors - num_a;
 
-			if (rand_bool_dist(4)) {
-				--num_a;
-			}
+		bool ok;
+		if (post_remaining == 0) {
+			ok = (post_open == outputs);
 		}
 		else {
-			break;
+			ok = check_satisfiability(post_remaining, post_open, max_ports, outputs);
+		}
+
+		if (ok) {
+			*in = num_in;
+			*out = num_out;
+			*actors = num_a;
+			return true;
+		}
+		if (rand_bool_dist(4)) {
+			--num_a;
 		}
 	} while (num_a >= 4);
 
-	if (num_a < 4) {
-		return false;
-	}
-
-	*in = num_in;
-	*out = num_out;
-	*actors = num_a;
-	return true;
+	return false;
 }
 
 static Actor_Complexity get_complexity(
@@ -233,6 +248,11 @@ static void generate_parallel_network(
 	std::vector<Actor_Instance_Port> left;
 	std::vector<Actor_Instance_Port> right;
 
+	++cond_nesting_level;
+	if (cond_nesting_level > cond_nesting_max) {
+		cond_nesting_max = cond_nesting_level;
+	}
+
 	num_actors -= 2; // for join and fork
 
 	unsigned remaining_left = num_actors / 2;
@@ -296,10 +316,10 @@ static void generate_parallel_network(
 	}
 
 	assert(count == outputs);
-	std::cout << "Generate if" << std::endl;
+	std::cout << "Generate if (level " << cond_nesting_level << ")" << std::endl;
 	generate_path(net, remaining_left, left, outputs, actor_count, c->get_max_ports());
 	actor_count += remaining_left;
-	std::cout << "Generate else" << std::endl;
+	std::cout << "Generate else (level " << cond_nesting_level << ")" << std::endl;
 	generate_path(net, remaining_right, right, outputs, actor_count, c->get_max_ports());
 	actor_count += remaining_right;
 
@@ -367,6 +387,8 @@ static void generate_parallel_network(
 		aip.port.num_tokens = 1;
 		created_out_ports.push_back(aip);
 	}
+
+	--cond_nesting_level;
 }
 
 static bool check_satisfiability(
@@ -398,7 +420,7 @@ static unsigned check_parallel_network(
 	Config* c = c->getInstance();
 	unsigned actors = 0;
 
-	if (c->get_cond_flow_dynamic() && rand_bool_dist(20)) {
+	if (c->get_cond_flow_dynamic() && rand_bool_dist(8)) {
 		unsigned in, out;
 		bool d = get_parallel_net_conf(remaining_actors, c->get_max_ports(), (unsigned)open_ports.size() - open_feedbacks, &in, &out, &actors, outputs);
 
@@ -760,6 +782,7 @@ int generate_network(void)
 		}
 	}
 
+	std::cout << "Maximum Cond nesting depth: " << cond_nesting_max << std::endl;
 	std::cout << "Generation done." << std::endl;
 
 	return 0;
